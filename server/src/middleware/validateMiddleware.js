@@ -37,6 +37,27 @@ const loginValidation = [
   body('password').notEmpty().withMessage('Password is required'),
 ];
 
+const noteValidation = [
+  body('title')
+    .trim()
+    .notEmpty()
+    .withMessage('Title is required')
+    .isLength({ max: 255 })
+    .withMessage('Title must not exceed 255 characters'),
+  body('content').notEmpty().withMessage('Content is required'),
+];
+
+const updateNoteValidation = [
+  body('title')
+    .optional()
+    .trim()
+    .notEmpty()
+    .withMessage('Title cannot be empty')
+    .isLength({ max: 255 })
+    .withMessage('Title must not exceed 255 characters'),
+  body('content').optional(),
+];
+
 const profileValidation = [
   usernameRule(),
   body('email')
@@ -74,6 +95,8 @@ function validate(req, res, next) {
 module.exports = {
   registerValidation,
   loginValidation,
+  noteValidation,
+  updateNoteValidation,
   profileValidation,
   changePasswordValidation,
   validate,

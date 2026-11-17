@@ -1,0 +1,95 @@
+'use strict';
+
+const notesService = require('../services/notesService');
+
+async function createNote(req, res, next) {
+  try {
+    const { title, content, category, tags, is_pinned, is_favorite } = req.body;
+    const note = await notesService.createNote(req.user.userId, {
+      title,
+      content,
+      category,
+      tags,
+      is_pinned,
+      is_favorite,
+    });
+    return res.status(201).json({
+      success: true,
+      message: 'Note created successfully',
+      data: { note },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function getAllNotes(req, res, next) {
+  try {
+    const { page, limit } = req.query;
+    const allNotes = await notesService.getNotesByUser(req.user.userId);
+    const { items: notes, pagination } = notesService.paginateNotes(allNotes, page, limit);
+
+    return res.json({
+      success: true,
+      message: 'Notes retrieved successfully',
+      data: { notes, pagination },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function getNoteById(req, res, next) {
+  try {
+    const note = await notesService.getNoteById(req.params.id, req.user.userId);
+    return res.json({
+      success: true,
+      message: 'Note retrieved successfully',
+      data: { note },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function updateNote(req, res, next) {
+  try {
+    const { title, content, category, tags, is_pinned, is_favorite } = req.body;
+    const note = await notesService.updateNote(req.params.id, req.user.userId, {
+      title,
+      content,
+      category,
+      tags,
+      is_pinned,
+      is_favorite,
+    });
+    return res.json({
+      success: true,
+      message: 'Note updated successfully',
+      data: { note },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function deleteNote(req, res, next) {
+  try {
+    await notesService.deleteNote(req.params.id, req.user.userId);
+    return res.json({
+      success: true,
+      message: 'Note deleted successfully',
+      data: null,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = {
+  createNote,
+  getAllNotes,
+  getNoteById,
+  updateNote,
+  deleteNote,
+};
