@@ -3,6 +3,8 @@
 const notesModel = require('../models/notesModel');
 const AppError = require('../utils/AppError');
 const { sanitizePlainText, sanitizeRichContent } = require('../utils/sanitize');
+const { exportNoteDocument } = require('../utils/exporter');
+const { parseImportedFile } = require('../utils/importer');
 const { emitNoteEvent } = require('../utils/realtime');
 
 /**
@@ -156,23 +158,57 @@ async function updateNote(noteId, userId, { title, content, category, tags, is_p
 }
 
 /**
- * Delete a note after verifying ownership and broadcast real-time event.
+ * Delete a note after verifying ownership.
  * @param {number} noteId
  * @param {number} userId
  */
 async function deleteNote(noteId, userId) {
   const note = await notesModel.findById(noteId, userId);
   assertOwnership(note, userId);
-
-  await notesModel.remove(noteId, userId);
+  await notesModel.deleteById(noteId, userId);
   emitNoteEvent(userId, 'note:deleted', { noteId: Number(noteId) });
 }
 
+/**
+ * Export a note owned by userId as TXT or PDF.
+ * @param {number} noteId
+ * @param {number} userId
+ * @param {string} format
+ */
+async function exportNote(noteId, userId, format = 'txt') {
+  const note = await getNoteById(noteId, userId);
+  return exportNoteDocument(note, format);
+}
+
+/**
+ * Import a note from a supported file (.txt, .md, .html, .json) for userId.
+ * @param {number} userId
+ * @param {{ filename: string, content: string, category?: string, tags?: string }} filePayload
+ */
+async function importNote(userId, filePayload) {
+  const parsed = parseImportedFile(filePayload || {});
+  const note = await notesModel.create({
+    user_id: userId,
+    title: parsed.title,
+    content: parsed.content,
+    category: parsed.category,
+    tags: parsed.tags,
+    is_pinned: 0,
+    is_favorite: 0,
+  });
+  emitNoteEvent(userId, 'note:created', { note });
+  return note;
+}
+
 module.exports = {
+  assertOwnership,
+  normalizeTags,
   createNote,
   getNotesByUser,
   paginateNotes,
   getNoteById,
   updateNote,
   deleteNote,
+  exportNote,
+  importNote,
 };
