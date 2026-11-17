@@ -1,0 +1,4 @@
+require:
+  - dotenv/config
+timeout: 10000
+exit: true
