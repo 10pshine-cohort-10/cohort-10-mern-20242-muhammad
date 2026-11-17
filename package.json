@@ -1,0 +1,21 @@
+{
+  "name": "notes-management-app",
+  "version": "1.0.0",
+  "description": "Professional Notes Management Application",
+  "scripts": {
+    "install:all": "npm install --prefix server && npm install --prefix client",
+    "dev:server": "npm run dev --prefix server",
+    "dev:client": "npm run dev --prefix client",
+    "start:server": "npm start --prefix server",
+    "build:client": "npm run build --prefix client",
+    "test:server": "npm test --prefix server",
+    "test:client": "npm test --prefix client",
+    "test:all": "npm run test:server && npm run test:client",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down"
+  },
+  "keywords": ["notes", "react", "express", "mysql", "jwt", "tiptap"],
+  "author": "",
+  "license": "MIT"
+}
+
