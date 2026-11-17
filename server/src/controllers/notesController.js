@@ -33,8 +33,14 @@ async function createNote(req, res, next) {
  */
 async function getAllNotes(req, res, next) {
   try {
-    const { page, limit } = req.query;
-    const allNotes = await notesService.getNotesByUser(req.user.userId);
+    const { search, pinned, favorite, category, tag, sort, page, limit } = req.query;
+    const filters = { search, pinned, favorite, category, tag, sort };
+    // Remove undefined keys so default filter calls remain clean
+    Object.keys(filters).forEach((k) => {
+      if (filters[k] === undefined) delete filters[k];
+    });
+
+    const allNotes = await notesService.getNotesByUser(req.user.userId, filters);
     const { items: notes, pagination } = notesService.paginateNotes(allNotes, page, limit);
 
     logger.debug({ event: 'notes.list', userId: req.user.userId, count: notes.length }, 'Notes retrieved');
@@ -70,20 +76,12 @@ async function getNoteById(req, res, next) {
  */
 async function updateNote(req, res, next) {
   try {
-    const { title, content, category, tags, is_pinned, is_favorite } = req.body;
-    const note = await notesService.updateNote(req.params.id, req.user.userId, {
-      title,
-      content,
-      category,
-      tags,
-      is_pinned,
-      is_favorite,
-    });
-    logger.info({ event: 'note.updated', userId: req.user.userId, noteId: note.id }, 'Note updated successfully');
+    const updatedNote = await notesService.updateNote(req.params.id, req.user.userId, req.body);
+    logger.info({ event: 'note.updated', userId: req.user.userId, noteId: updatedNote.id }, 'Note updated successfully');
     return res.json({
       success: true,
       message: 'Note updated successfully',
-      data: { note },
+      data: { note: updatedNote },
     });
   } catch (err) {
     next(err);
@@ -96,10 +94,7 @@ async function updateNote(req, res, next) {
 async function deleteNote(req, res, next) {
   try {
     await notesService.deleteNote(req.params.id, req.user.userId);
-    logger.info(
-      { event: 'note.deleted', userId: req.user.userId, noteId: Number(req.params.id) },
-      'Note deleted successfully'
-    );
+    logger.info({ event: 'note.deleted', userId: req.user.userId, noteId: Number(req.params.id) }, 'Note deleted successfully');
     return res.json({
       success: true,
       message: 'Note deleted successfully',
