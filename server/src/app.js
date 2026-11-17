@@ -3,6 +3,9 @@
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
+const pinoHttp = require('pino-http');
+const logger = require('./config/logger');
+const AppError = require('./utils/AppError');
 
 const app = express();
 app.disable('x-powered-by');
@@ -16,6 +19,16 @@ app.use(
   })
 );
 
+app.use(
+  pinoHttp({
+    logger,
+    customLogLevel(req, res, err) {
+      if (res.statusCode >= 500 || err) return 'error';
+      if (res.statusCode >= 400) return 'warn';
+      return 'info';
+    },
+  })
+);
 app.use(express.json());
 app.use(cookieParser());
 
@@ -36,5 +49,13 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/notes', require('./routes/notesRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
+
+// 404 handler
+app.use((req, res, next) =>
+  next(new AppError('Route not found', 404, 'NOT_FOUND'))
+);
+
+// Global error handler
+app.use(require('./middleware/errorMiddleware'));
 
 module.exports = app;

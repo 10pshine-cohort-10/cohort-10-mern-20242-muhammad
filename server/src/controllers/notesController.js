@@ -1,6 +1,7 @@
 'use strict';
 
 const notesService = require('../services/notesService');
+const logger = require('../config/logger');
 
 async function createNote(req, res, next) {
   try {
@@ -13,6 +14,7 @@ async function createNote(req, res, next) {
       is_pinned,
       is_favorite,
     });
+    logger.info({ event: 'note.created', userId: req.user.userId, noteId: note.id }, 'Note created successfully');
     return res.status(201).json({
       success: true,
       message: 'Note created successfully',
@@ -29,6 +31,7 @@ async function getAllNotes(req, res, next) {
     const allNotes = await notesService.getNotesByUser(req.user.userId);
     const { items: notes, pagination } = notesService.paginateNotes(allNotes, page, limit);
 
+    logger.debug({ event: 'notes.list', userId: req.user.userId, count: notes.length }, 'Notes retrieved');
     return res.json({
       success: true,
       message: 'Notes retrieved successfully',
@@ -42,6 +45,7 @@ async function getAllNotes(req, res, next) {
 async function getNoteById(req, res, next) {
   try {
     const note = await notesService.getNoteById(req.params.id, req.user.userId);
+    logger.debug({ event: 'note.get', userId: req.user.userId, noteId: note.id }, 'Note retrieved');
     return res.json({
       success: true,
       message: 'Note retrieved successfully',
@@ -63,6 +67,7 @@ async function updateNote(req, res, next) {
       is_pinned,
       is_favorite,
     });
+    logger.info({ event: 'note.updated', userId: req.user.userId, noteId: note.id }, 'Note updated successfully');
     return res.json({
       success: true,
       message: 'Note updated successfully',
@@ -76,6 +81,10 @@ async function updateNote(req, res, next) {
 async function deleteNote(req, res, next) {
   try {
     await notesService.deleteNote(req.params.id, req.user.userId);
+    logger.info(
+      { event: 'note.deleted', userId: req.user.userId, noteId: Number(req.params.id) },
+      'Note deleted successfully'
+    );
     return res.json({
       success: true,
       message: 'Note deleted successfully',

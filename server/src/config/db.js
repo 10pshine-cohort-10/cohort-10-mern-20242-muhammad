@@ -1,6 +1,7 @@
 'use strict';
 
 const mysql = require('mysql2/promise');
+const logger = require('./logger');
 
 const pool = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
@@ -27,7 +28,7 @@ async function query(sql, params) {
     const [rows, fields] = await pool.execute(sql, params);
     return [rows, fields];
   } catch (err) {
-    console.error('Database query failed:', err.message);
+    logger.error({ err: { message: err.message, code: err.code }, sql }, 'Database query failed');
     throw err;
   }
 }
@@ -41,9 +42,10 @@ async function testConnection() {
     const conn = await pool.getConnection();
     await conn.ping();
     conn.release();
+    logger.info('Database connection established successfully');
     return { success: true, message: 'Database connection established successfully' };
   } catch (err) {
-    console.error('Database connection failed:', err.message);
+    logger.error({ err: { message: err.message, code: err.code } }, 'Database connection failed');
     return { success: false, message: err.message, code: err.code };
   }
 }
@@ -61,7 +63,7 @@ async function transaction(callback) {
     await conn.commit();
     return result;
   } catch (error) {
-    console.error('Database transaction rolled back:', error.message);
+    logger.error({ err: { message: error.message, code: error.code } }, 'Database transaction rolled back');
     await conn.rollback();
     throw error;
   } finally {

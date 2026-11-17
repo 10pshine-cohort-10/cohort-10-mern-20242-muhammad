@@ -1,5 +1,6 @@
 'use strict';
 
+const AppError = require('../utils/AppError');
 const authService = require('../services/authService');
 
 /**
@@ -9,7 +10,7 @@ async function protect(req, res, next) {
   const token = req.cookies && req.cookies.token;
 
   if (!token) {
-    return res.status(401).json({ success: false, message: 'Authentication required', code: 'MISSING_TOKEN' });
+    return next(new AppError('Authentication required', 401, 'MISSING_TOKEN'));
   }
 
   try {
@@ -18,9 +19,9 @@ async function protect(req, res, next) {
     next();
   } catch (err) {
     if (err.name === 'TokenExpiredError') {
-      return res.status(401).json({ success: false, message: 'Token expired', code: 'TOKEN_EXPIRED' });
+      return next(new AppError('Token expired', 401, 'TOKEN_EXPIRED'));
     }
-    return res.status(401).json({ success: false, message: 'Invalid token', code: 'INVALID_TOKEN' });
+    return next(new AppError('Invalid token', 401, 'INVALID_TOKEN'));
   }
 }
 
