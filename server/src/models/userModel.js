@@ -42,6 +42,19 @@ async function findById(id) {
 }
 
 /**
+ * Find a user by ID, including password_hash for credential checks.
+ * @param {number} id
+ * @returns {Promise<object|null>}
+ */
+async function findByIdWithPassword(id) {
+  const [rows] = await query(
+    'SELECT id, name, username, email, password_hash, created_at, updated_at FROM users WHERE id = ? LIMIT 1',
+    [id]
+  );
+  return rows[0] || null;
+}
+
+/**
  * Create a new user.
  * @param {{ name?: string, username?: string, email: string, password_hash: string }} data
  * @returns {Promise<{ id: number, name: string, username: string, email: string }>}
@@ -58,12 +71,13 @@ async function create({ name, username, email, password_hash }) {
 
 /**
  * Update user profile (username and/or email).
+ * Pass null for a field to retain its current database value (via COALESCE).
  * @param {number} id
- * @param {{ username: string, email: string }} data
+ * @param {{ username: string|null, email: string|null }} data
  */
 async function updateProfile(id, { username, email }) {
   await query(
-    'UPDATE users SET username = ?, email = ?, updated_at = NOW() WHERE id = ?',
+    'UPDATE users SET username = COALESCE(?, username), email = COALESCE(?, email), updated_at = NOW() WHERE id = ?',
     [username, email, id]
   );
 }
@@ -84,6 +98,7 @@ module.exports = {
   findByEmail,
   findByUsername,
   findById,
+  findByIdWithPassword,
   create,
   updateProfile,
   updatePassword,

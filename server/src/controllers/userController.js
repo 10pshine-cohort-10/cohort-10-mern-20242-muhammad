@@ -30,7 +30,8 @@ async function updateProfile(req, res, next) {
     const { username, email, currentPassword, newPassword } = req.body;
     const userId = req.user.userId;
 
-    const user = await userModel.findByEmail(req.user.email);
+    // Load credential record by stable userId (not token email, which may be stale after email change)
+    const user = await userModel.findByIdWithPassword(userId);
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found', code: 'USER_NOT_FOUND' });
     }
@@ -48,6 +49,11 @@ async function updateProfile(req, res, next) {
       }
     }
 
+    // Validate new password BEFORE writing any profile changes
+    if (isPasswordChanging && currentPassword === newPassword) {
+      return res.status(400).json({ success: false, message: 'New password must be different from current password', code: 'SAME_PASSWORD' });
+    }
+
     if (isEmailChanging) {
       const existingEmailUser = await userModel.findByEmail(email);
       if (existingEmailUser && existingEmailUser.id !== userId) {
@@ -62,15 +68,13 @@ async function updateProfile(req, res, next) {
       }
     }
 
+    // Pass null for omitted fields — COALESCE in SQL retains the current DB value
     await userModel.updateProfile(userId, {
-      username: username || user.username,
-      email: isEmailChanging ? email : user.email,
+      username: username || null,
+      email: isEmailChanging ? email : null,
     });
 
     if (isPasswordChanging) {
-      if (currentPassword === newPassword) {
-        return res.status(400).json({ success: false, message: 'New password must be different from current password', code: 'SAME_PASSWORD' });
-      }
       const newHash = await authService.hashPassword(newPassword);
       await userModel.updatePassword(userId, newHash);
     }
@@ -94,7 +98,8 @@ async function changePassword(req, res, next) {
     const { currentPassword, newPassword } = req.body;
     const userId = req.user.userId;
 
-    const user = await userModel.findByEmail(req.user.email);
+    // Load credential record by stable userId (not token email, which may be stale)
+    const user = await userModel.findByIdWithPassword(userId);
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found', code: 'USER_NOT_FOUND' });
     }

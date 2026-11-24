@@ -25,8 +25,18 @@ async function createNote(req, res, next) {
 
 async function getAllNotes(req, res, next) {
   try {
-    const { page, limit } = req.query;
-    const allNotes = await notesService.getNotesByUser(req.user.userId);
+    const { page, limit, search, favorite, pinned, category, tag, sort } = req.query;
+
+    // Build filters object — only include keys that were actually provided
+    const filters = {};
+    if (search !== undefined) filters.search = search;
+    if (favorite !== undefined) filters.favorite = favorite;
+    if (pinned !== undefined) filters.pinned = pinned;
+    if (category !== undefined) filters.category = category;
+    if (tag !== undefined) filters.tag = tag;
+    if (sort !== undefined) filters.sort = sort;
+
+    const allNotes = await notesService.getNotesByUser(req.user.userId, filters);
     const { items: notes, pagination } = notesService.paginateNotes(allNotes, page, limit);
 
     return res.json({

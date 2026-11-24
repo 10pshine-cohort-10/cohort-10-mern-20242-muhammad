@@ -124,7 +124,7 @@ async function updateNote(noteId, userId, { title, content, category, tags, is_p
 async function deleteNote(noteId, userId) {
   const note = await notesModel.findById(noteId, userId);
   assertOwnership(note, userId);
-  await notesModel.remove(noteId, userId);
+  await notesModel.deleteById(noteId, userId);
 }
 
 module.exports = {

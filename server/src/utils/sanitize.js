@@ -10,10 +10,22 @@ const sanitizeHtml = require('sanitize-html');
  */
 function sanitizePlainText(text) {
   if (!text) return '';
-  return sanitizeHtml(String(text), {
+  // Strip all HTML tags using sanitize-html
+  const stripped = sanitizeHtml(String(text), {
     allowedTags: [],
     allowedAttributes: {},
-  }).trim();
+  });
+  // sanitize-html encodes entities when stripping tags (e.g. R&D → R&amp;D).
+  // Decode them back so stored plain text contains literal characters, not HTML entities.
+  // Encoding should happen at the rendering boundary (browser/template), not in storage.
+  return stripped
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ')
+    .trim();
 }
 
 /**
