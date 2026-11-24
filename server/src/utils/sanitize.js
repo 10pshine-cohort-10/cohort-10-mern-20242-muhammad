@@ -2,6 +2,28 @@
 
 const sanitizeHtml = require('sanitize-html');
 
+const HTML_ENTITY_MAP = {
+  '&amp;': '&',
+  '&lt;': '<',
+  '&gt;': '>',
+  '&quot;': '"',
+  '&#39;': "'",
+  '&apos;': "'",
+  '&nbsp;': ' ',
+};
+
+const HTML_ENTITY_REGEX = /&(?:amp|lt|gt|quot|#39|apos|nbsp);/g;
+
+/**
+ * Decodes HTML entities in a single pass to prevent double-decoding vulnerabilities.
+ * @param {string} str
+ * @returns {string}
+ */
+function decodeHtmlEntities(str) {
+  if (!str) return '';
+  return str.replace(HTML_ENTITY_REGEX, (match) => HTML_ENTITY_MAP[match] || match);
+}
+
 /**
  * Strips all HTML tags and attributes, returning pure plain text.
  * Used for title sanitization and indexing.
@@ -16,16 +38,9 @@ function sanitizePlainText(text) {
     allowedAttributes: {},
   });
   // sanitize-html encodes entities when stripping tags (e.g. R&D → R&amp;D).
-  // Decode them back so stored plain text contains literal characters, not HTML entities.
-  // Encoding should happen at the rendering boundary (browser/template), not in storage.
-  return stripped
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&nbsp;/g, ' ')
-    .trim();
+  // Decode them in a single pass so stored plain text contains literal characters,
+  // without decoding characters produced by previous replacements.
+  return decodeHtmlEntities(stripped).trim();
 }
 
 /**
@@ -57,5 +72,5 @@ function sanitizeRichContent(html) {
 module.exports = {
   sanitizePlainText,
   sanitizeRichContent,
+  decodeHtmlEntities,
 };
-

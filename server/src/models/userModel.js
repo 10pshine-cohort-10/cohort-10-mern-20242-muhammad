@@ -8,11 +8,15 @@ const { query } = require('../config/db');
  * @returns {Promise<object|null>}
  */
 async function findByEmail(email) {
-  const [rows] = await query(
-    'SELECT id, name, username, email, password_hash, created_at, updated_at FROM users WHERE email = ? LIMIT 1',
-    [email]
-  );
-  return rows[0] || null;
+  try {
+    const [rows] = await query(
+      'SELECT id, name, username, email, password_hash, created_at, updated_at FROM users WHERE email = ? LIMIT 1',
+      [email]
+    );
+    return rows[0] || null;
+  } catch (err) {
+    throw err;
+  }
 }
 
 /**
@@ -21,11 +25,15 @@ async function findByEmail(email) {
  * @returns {Promise<object|null>}
  */
 async function findByUsername(username) {
-  const [rows] = await query(
-    'SELECT id, name, username, email FROM users WHERE username = ? LIMIT 1',
-    [username]
-  );
-  return rows[0] || null;
+  try {
+    const [rows] = await query(
+      'SELECT id, name, username, email FROM users WHERE username = ? LIMIT 1',
+      [username]
+    );
+    return rows[0] || null;
+  } catch (err) {
+    throw err;
+  }
 }
 
 /**
@@ -34,11 +42,15 @@ async function findByUsername(username) {
  * @returns {Promise<object|null>}
  */
 async function findById(id) {
-  const [rows] = await query(
-    'SELECT id, name, username, email, created_at, updated_at FROM users WHERE id = ? LIMIT 1',
-    [id]
-  );
-  return rows[0] || null;
+  try {
+    const [rows] = await query(
+      'SELECT id, name, username, email, created_at, updated_at FROM users WHERE id = ? LIMIT 1',
+      [id]
+    );
+    return rows[0] || null;
+  } catch (err) {
+    throw err;
+  }
 }
 
 /**
@@ -47,11 +59,15 @@ async function findById(id) {
  * @returns {Promise<object|null>}
  */
 async function findByIdWithPassword(id) {
-  const [rows] = await query(
-    'SELECT id, name, username, email, password_hash, created_at, updated_at FROM users WHERE id = ? LIMIT 1',
-    [id]
-  );
-  return rows[0] || null;
+  try {
+    const [rows] = await query(
+      'SELECT id, name, username, email, password_hash, created_at, updated_at FROM users WHERE id = ? LIMIT 1',
+      [id]
+    );
+    return rows[0] || null;
+  } catch (err) {
+    throw err;
+  }
 }
 
 /**
@@ -60,13 +76,17 @@ async function findByIdWithPassword(id) {
  * @returns {Promise<{ id: number, name: string, username: string, email: string }>}
  */
 async function create({ name, username, email, password_hash }) {
-  const finalUsername = username || email.split('@')[0];
-  const finalName = name || finalUsername;
-  const [result] = await query(
-    'INSERT INTO users (name, username, email, password_hash) VALUES (?, ?, ?, ?)',
-    [finalName, finalUsername, email, password_hash]
-  );
-  return { id: result.insertId, name: finalName, username: finalUsername, email };
+  try {
+    const finalUsername = username || email.split('@')[0];
+    const finalName = name || finalUsername;
+    const [result] = await query(
+      'INSERT INTO users (name, username, email, password_hash) VALUES (?, ?, ?, ?)',
+      [finalName, finalUsername, email, password_hash]
+    );
+    return { id: result.insertId, name: finalName, username: finalUsername, email };
+  } catch (err) {
+    throw err;
+  }
 }
 
 /**
@@ -76,10 +96,14 @@ async function create({ name, username, email, password_hash }) {
  * @param {{ username: string|null, email: string|null }} data
  */
 async function updateProfile(id, { username, email }) {
-  await query(
-    'UPDATE users SET username = COALESCE(?, username), email = COALESCE(?, email), updated_at = NOW() WHERE id = ?',
-    [username, email, id]
-  );
+  try {
+    await query(
+      'UPDATE users SET username = COALESCE(?, username), email = COALESCE(?, email), updated_at = NOW() WHERE id = ?',
+      [username, email, id]
+    );
+  } catch (err) {
+    throw err;
+  }
 }
 
 /**
@@ -88,10 +112,14 @@ async function updateProfile(id, { username, email }) {
  * @param {string} password_hash
  */
 async function updatePassword(id, password_hash) {
-  await query(
-    'UPDATE users SET password_hash = ?, updated_at = NOW() WHERE id = ?',
-    [password_hash, id]
-  );
+  try {
+    await query(
+      'UPDATE users SET password_hash = ?, updated_at = NOW() WHERE id = ?',
+      [password_hash, id]
+    );
+  } catch (err) {
+    throw err;
+  }
 }
 
 module.exports = {
