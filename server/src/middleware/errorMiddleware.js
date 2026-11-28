@@ -3,17 +3,33 @@
 const logger = require('../config/logger');
 
 /**
+ * @typedef {Error & {
+ *   statusCode?: number,
+ *   code?: string,
+ *   isOperational?: boolean,
+ *   name?: string
+ * }} AppErrorShape
+ */
+
+/**
  * Global Express error handler (4-argument middleware).
+ * @param {AppErrorShape} err
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ * @returns {import('express').Response}
  */
 // eslint-disable-next-line no-unused-vars
 function errorMiddleware(err, req, res, next) {
-  // Operational / known errors
-  if (err.isOperational) {
-    logger.warn({ code: err.code, statusCode: err.statusCode }, err.message);
-    return res.status(err.statusCode).json({
+  // Operational / known errors (including client validation errors with statusCode < 500)
+  if (err.isOperational || (typeof err.statusCode === 'number' && err.statusCode >= 400 && err.statusCode < 500)) {
+    const statusCode = err.statusCode || 400;
+    const code = err.code || 'VALIDATION_ERROR';
+    logger.warn({ code, statusCode }, err.message);
+    return res.status(statusCode).json({
       success: false,
       message: err.message,
-      code: err.code,
+      code,
     });
   }
 

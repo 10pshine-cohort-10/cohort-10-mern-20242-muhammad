@@ -10,7 +10,7 @@ const SALT_ROUNDS = 12;
  * @param {string} password
  * @returns {Promise<string>}
  */
-async function hashPassword(password) {
+function hashPassword(password) {
   return bcrypt.hash(password, SALT_ROUNDS);
 }
 
@@ -20,7 +20,7 @@ async function hashPassword(password) {
  * @param {string} hash
  * @returns {Promise<boolean>}
  */
-async function verifyPassword(password, hash) {
+function verifyPassword(password, hash) {
   return bcrypt.compare(password, hash);
 }
 

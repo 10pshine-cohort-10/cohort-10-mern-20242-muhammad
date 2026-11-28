@@ -6,6 +6,8 @@ let columnsEnsured = false;
 
 /**
  * Automatically add optional columns (category, tags, is_favorite) if missing on an existing table.
+ * Sets columnsEnsured = true only when all statements succeed or fail with ER_DUP_FIELDNAME.
+ * @returns {Promise<void>}
  */
 async function ensureOptionalColumns() {
   if (columnsEnsured) return;
@@ -14,24 +16,32 @@ async function ensureOptionalColumns() {
     "ALTER TABLE notes ADD COLUMN IF NOT EXISTS tags VARCHAR(255) NOT NULL DEFAULT ''",
     'ALTER TABLE notes ADD COLUMN IF NOT EXISTS is_favorite TINYINT(1) NOT NULL DEFAULT 0',
   ];
+  let allApplied = true;
   for (const sql of statements) {
     try {
       await query(sql, []);
-    } catch {
-      // Ignore if column already exists or running in mocked environment
+    } catch (err) {
+      if (!(err && /** @type {any} */ (err).code === 'ER_DUP_FIELDNAME')) {
+        allApplied = false;
+      }
     }
   }
-  columnsEnsured = true;
+  if (allApplied) {
+    columnsEnsured = true;
+  }
 }
 
 /**
  * Execute query with automatic one-time column migration fallback if ER_BAD_FIELD_ERROR occurs.
+ * @param {string} sql
+ * @param {Array<unknown>} params
+ * @returns {Promise<any>}
  */
 async function runWithSchemaFallback(sql, params) {
   try {
     return await query(sql, params);
   } catch (err) {
-    if (err && err.code === 'ER_BAD_FIELD_ERROR' && !columnsEnsured) {
+    if (err && /** @type {any} */ (err).code === 'ER_BAD_FIELD_ERROR' && !columnsEnsured) {
       await ensureOptionalColumns();
       return query(sql, params);
     }
@@ -53,12 +63,29 @@ const SELECT_COLUMNS =
   'id, user_id, title, content, content_text, category, tags, is_pinned, is_favorite, created_at, updated_at';
 
 /**
+ * @typedef {Object} NoteRow
+ * @property {number} id
+ * @property {number} user_id
+ * @property {string} title
+ * @property {string} content
+ * @property {string} content_text
+ * @property {string} category
+ * @property {string} tags
+ * @property {number} is_pinned
+ * @property {number} is_favorite
+ * @property {Date|string} created_at
+ * @property {Date|string} updated_at
+ */
+
+/**
  * Create a new note and return the full note row.
+ * @param {{ user_id: number, title: string, content?: string, content_text?: string, category?: string, tags?: string, is_pinned?: number, is_favorite?: number }} data
+ * @returns {Promise<NoteRow>}
  */
 async function create({
   user_id,
   title,
-  content,
+  content = '',
   content_text,
   category = 'General',
   tags = '',
@@ -80,8 +107,8 @@ async function create({
 /**
  * Find all notes for a user with optional filtering and sorting.
  * @param {number} userId
- * @param {{ search?: string, pinned?: string, favorite?: string, category?: string, tag?: string, sort?: string }} options
- * @returns {Promise<Array>}
+ * @param {{ search?: string, pinned?: string, favorite?: string, category?: string, tag?: string, sort?: string }} [options={}]
+ * @returns {Promise<NoteRow[]>}
  */
 async function findAllByUser(userId, { search, pinned, favorite, category, tag, sort } = {}) {
   let sql = `SELECT ${SELECT_COLUMNS} FROM notes WHERE user_id = ?`;
@@ -129,6 +156,9 @@ async function findAllByUser(userId, { search, pinned, favorite, category, tag, 
 
 /**
  * Find a single note by id and userId.
+ * @param {number|string} id
+ * @param {number} userId
+ * @returns {Promise<NoteRow|null>}
  */
 async function findById(id, userId) {
   const [rows] = await runWithSchemaFallback(
@@ -140,6 +170,10 @@ async function findById(id, userId) {
 
 /**
  * Update a note dynamically by provided fields.
+ * @param {number|string} id
+ * @param {number} userId
+ * @param {Record<string, any>} fields
+ * @returns {Promise<NoteRow>}
  */
 async function update(id, userId, fields) {
   const allowedFields = [
@@ -183,6 +217,9 @@ async function update(id, userId, fields) {
 
 /**
  * Delete a note by id and userId.
+ * @param {number|string} id
+ * @param {number} userId
+ * @returns {Promise<void>}
  */
 async function deleteById(id, userId) {
   await runWithSchemaFallback('DELETE FROM notes WHERE id = ? AND user_id = ?', [id, userId]);

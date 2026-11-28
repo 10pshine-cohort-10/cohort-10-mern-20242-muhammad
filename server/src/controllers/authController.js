@@ -14,12 +14,59 @@ const cookieOptions = {
 };
 
 /**
+ * @typedef {Object} RegisterRequestBody
+ * @property {string} [name] - User full name
+ * @property {string} [username] - Desired username
+ * @property {string} email - User email address
+ * @property {string} password - User plain text password
+ */
+
+/**
  * POST /api/auth/register
+ * @param {import('express').Request<{}, {}, RegisterRequestBody>} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ * @returns {Promise<import('express').Response | void>}
  */
 async function register(req, res, next) {
   try {
+    /** @type {RegisterRequestBody} */
     const { name, username, email, password } = req.body;
-    const finalUsername = username || (name ? name.toLowerCase().replace(/\s+/g, '_') : email.split('@')[0]);
+
+    /** @type {string | undefined} */
+    let finalUsername = username;
+    if (!finalUsername) {
+      if (name) {
+        /** @type {string} */
+        const nameCandidate = name.toLowerCase().replace(/\s+/g, '_').replace(/[^\w]/g, '');
+        if (nameCandidate.length >= 3 && nameCandidate.length <= 50 && /^\w+$/.test(nameCandidate)) {
+          finalUsername = nameCandidate;
+        }
+      }
+
+      if (!finalUsername && email) {
+        /** @type {string} */
+        const emailCandidate = email.split('@')[0].toLowerCase().replace(/[^\w]/g, '');
+        if (emailCandidate.length >= 3 && /^\w+$/.test(emailCandidate)) {
+          finalUsername = emailCandidate.slice(0, 50);
+        }
+      }
+    }
+
+    if (
+      !finalUsername ||
+      finalUsername.length < 3 ||
+      finalUsername.length > 50 ||
+      !/^\w+$/.test(finalUsername)
+    ) {
+      return next(
+        new AppError(
+          'Username must be between 3 and 50 alphanumeric characters or underscores',
+          400,
+          'VALIDATION_ERROR'
+        )
+      );
+    }
 
     const existingEmail = await userModel.findByEmail(email);
     if (existingEmail) {
@@ -52,6 +99,10 @@ async function register(req, res, next) {
 
 /**
  * POST /api/auth/login
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ * @returns {Promise<import('express').Response | void>}
  */
 async function login(req, res, next) {
   try {
@@ -88,6 +139,10 @@ async function login(req, res, next) {
 
 /**
  * POST /api/auth/logout
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ * @returns {Promise<import('express').Response | void>}
  */
 async function logout(req, res, next) {
   try {
@@ -101,6 +156,10 @@ async function logout(req, res, next) {
 
 /**
  * GET /api/auth/me
+ * @param {import('express').Request & { user?: { userId: number, email: string } }} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ * @returns {Promise<import('express').Response | void>}
  */
 async function getMe(req, res, next) {
   try {

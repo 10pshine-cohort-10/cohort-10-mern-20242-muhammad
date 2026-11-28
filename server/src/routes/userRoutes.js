@@ -1,6 +1,8 @@
 'use strict';
 
-const router = require('express').Router();
+const express = require('express');
+/** @type {import('express').Router} */
+const router = express.Router();
 const {
   getProfile,
   updateProfile,

@@ -15,6 +15,7 @@ const {
   deleteNote,
 } = require('../controllers/notesController');
 
+/** @type {import('express').Router} */
 const router = Router();
 
 router.use(protect);
