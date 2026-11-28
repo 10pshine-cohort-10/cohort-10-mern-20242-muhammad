@@ -1,6 +1,7 @@
 'use strict';
 
 const { query } = require('../config/db');
+const { decodeHtmlEntities } = require('../utils/sanitize');
 
 let columnsEnsured = false;
 
@@ -50,13 +51,14 @@ async function runWithSchemaFallback(sql, params) {
 }
 
 /**
- * Strip HTML tags to produce plain text
+ * Strip HTML tags to produce plain text with decoded entities.
  * @param {string} html
  * @returns {string}
  */
 function stripHtml(html) {
   if (!html) return '';
-  return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  const text = html.replace(/<[^>]*>/g, ' ');
+  return decodeHtmlEntities(text).replace(/\s+/g, ' ').trim();
 }
 
 const SELECT_COLUMNS =

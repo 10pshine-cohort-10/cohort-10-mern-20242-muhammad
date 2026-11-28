@@ -182,12 +182,16 @@ async function updateProfile(req, res, next) {
 
     // Atomically execute profile update and password update within a single transaction
     await db.transaction(async (conn) => {
-      if (Object.keys(profileUpdates).length > 0) {
-        await userModel.updateProfile(userId, profileUpdates, conn);
-      }
+      try {
+        if (Object.keys(profileUpdates).length > 0) {
+          await userModel.updateProfile(userId, profileUpdates, conn);
+        }
 
-      if (isPasswordChanging && newHash) {
-        await userModel.updatePassword(userId, newHash, conn);
+        if (isPasswordChanging && newHash) {
+          await userModel.updatePassword(userId, newHash, conn);
+        }
+      } catch (err) {
+        throw err;
       }
     });
 

@@ -44,7 +44,7 @@ async function query(sql, params) {
 
 /**
  * Test MySQL database connectivity.
- * @returns {Promise<{ success: boolean, message: string }>}
+ * @returns {Promise<{ success: boolean, message: string, code?: string }>}
  */
 async function testConnection() {
   try {
@@ -57,7 +57,7 @@ async function testConnection() {
   } catch (err) {
     const dbErr = /** @type {DatabaseError} */ (err);
     logger.error({ err: { message: dbErr.message, code: dbErr.code } }, 'Database connection failed');
-    return { success: false, message: dbErr.message };
+    return { success: false, message: dbErr.message, code: dbErr.code };
   }
 }
 
