@@ -28,7 +28,10 @@ async function query(sql, params) {
     const [rows, fields] = await pool.execute(sql, params);
     return [rows, fields];
   } catch (err) {
-    logger.error({ err: { message: err.message, code: err.code }, sql }, 'Database query failed');
+    logger.error(
+      { err: { message: err.message, code: err.code }, sql },
+      'Database query failed'
+    );
     throw err;
   }
 }
@@ -42,29 +45,69 @@ async function testConnection() {
     const conn = await pool.getConnection();
     await conn.ping();
     conn.release();
+
     logger.info('Database connection established successfully');
-    return { success: true, message: 'Database connection established successfully' };
+
+    return {
+      success: true,
+      message: 'Database connection established successfully',
+    };
   } catch (err) {
-    logger.error({ err: { message: err.message, code: err.code } }, 'Database connection failed');
-    return { success: false, message: err.message, code: err.code };
+    logger.error(
+      { err: { message: err.message, code: err.code } },
+      'Database connection failed'
+    );
+
+    return {
+      success: false,
+      message: err.message,
+      code: err.code,
+    };
   }
 }
 
 /**
  * Execute multiple queries within a single database transaction.
- * @param {Function} callback (connection) => Promise<T>
+ * @template T
+ * @param {(connection: import('mysql2/promise').PoolConnection) => Promise<T>} callback
  * @returns {Promise<T>}
  */
 async function transaction(callback) {
   const conn = await pool.getConnection();
-  await conn.beginTransaction();
+  let transactionStarted = false;
+
   try {
+    await conn.beginTransaction();
+    transactionStarted = true;
+
     const result = await callback(conn);
+
     await conn.commit();
+    transactionStarted = false;
+
     return result;
   } catch (error) {
-    logger.error({ err: { message: error.message, code: error.code } }, 'Database transaction rolled back');
-    await conn.rollback();
+    logger.error(
+      { err: { message: error.message, code: error.code } },
+      'Database transaction failed'
+    );
+
+    if (transactionStarted) {
+      try {
+        await conn.rollback();
+      } catch (rollbackError) {
+        logger.error(
+          {
+            err: {
+              message: rollbackError.message,
+              code: rollbackError.code,
+            },
+          },
+          'Database transaction rollback failed'
+        );
+      }
+    }
+
     throw error;
   } finally {
     conn.release();
